@@ -447,7 +447,10 @@ class Bbioon_Login_Notification {
 			$this->settings['email'],
 			$subject,
 			$content,
-			[ 'Content-Type: text/html; charset=UTF-8' ]
+			[
+				'From: WordPress <' . get_option('admin_email') . '>',
+				'Content-Type: text/html; charset=UTF-8',
+			]
 		);
 
 		// Log the attempt
@@ -516,7 +519,10 @@ class Bbioon_Login_Notification {
 			$this->settings['email'],
 			$subject,
 			$content,
-			[ 'Content-Type: text/html; charset=UTF-8' ]
+			[
+				'From: WordPress <' . get_option('admin_email') . '>',
+				'Content-Type: text/html; charset=UTF-8',
+			]
 		);
 
 		// Log the attempt
