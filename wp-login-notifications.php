@@ -4,6 +4,7 @@
  * Description: Sends email notification when users login with customizable settings
  * Version: 1.0.0
  * Author: Ahmad Wael
+ * Author URI: https://bbioon.com
  * License: GPL-2.0+
  * Text Domain: bbioon-login-notification
  */
