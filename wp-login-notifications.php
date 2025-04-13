@@ -144,7 +144,7 @@ class Bbioon_Login_Notification {
 		if ( count( $logs ) > 100 ) {
 			$logs = array_slice( $logs, - 100 );
 		}
-		update_option( 'bbioon_login_notification_logs', $logs );
+		update_option( 'bbioon_login_notification_logs', $logs, false );
 	}
 
 	/**
@@ -154,7 +154,7 @@ class Bbioon_Login_Notification {
 		// Verify nonce for security
 		check_admin_referer( 'bbioon_login_notification_clear_logs' );
 		// Reset logs option to empty array
-		update_option( 'bbioon_login_notification_logs', [] );
+		update_option( 'bbioon_login_notification_logs', [], false );
 		// Redirect with success message
 		wp_safe_redirect( add_query_arg( [
 			'page'    => 'bbioon-login-notification',
