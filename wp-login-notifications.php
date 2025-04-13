@@ -126,7 +126,8 @@ class Bbioon_Login_Notification {
 	 */
 	private function log_notification( $user_id, $status, $message, $user ) {
 		$log_entry = [
-			'time'       => current_time( 'mysql' ),
+			'timestamp'  => current_time( 'mysql' ), // For sorting/comparison
+			'time'       => current_time( get_option( 'date_format' ) ) . ' ' . current_time( get_option( 'time_format' ) ),
 			'user_id'    => $user_id,
 			'username'   => $user->user_login,
 			'first_name' => $user->first_name,
@@ -425,7 +426,7 @@ class Bbioon_Login_Notification {
 			'[username]'   => $user->user_login,
 			'[first_name]' => $user->first_name,
 			'[last_name]'  => $user->last_name,
-			'[time]'       => current_time( 'mysql' ),
+			'[time]'       => current_time( get_option( 'date_format' ) ) . ' ' . current_time( get_option( 'time_format' ) ),
 		];
 
 		// Prepare email subject and content
@@ -494,7 +495,7 @@ class Bbioon_Login_Notification {
 			'[username]'   => $user->user_login,
 			'[first_name]' => $user->first_name,
 			'[last_name]'  => $user->last_name,
-			'[time]'       => current_time( 'mysql' ),
+			'[time]'       => current_time( get_option( 'date_format' ) ) . ' ' . current_time( get_option( 'time_format' ) ),
 		];
 
 		// Prepare email subject and content
