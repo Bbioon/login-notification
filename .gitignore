@@ -1,0 +1,31 @@
+# WordPress Plugin .gitignore for Bbioon Login Notification
+
+# OS/metadata files
+.DS_Store
+Thumbs.db
+*.swp
+
+# Dependency directories
+node_modules/
+vendor/
+composer.lock
+
+# Build/compiled files
+dist/
+*.zip
+*.log
+
+# Local/test configs
+wp-config.php
+.env
+*.sql
+
+# IDE specific files
+.idea/
+.vscode/
+*.code-workspace
+
+# WordPress core (if testing locally)
+wordpress/
+wp-content/plugins/hello.php
+wp-content/plugins/akismet/
