@@ -53,16 +53,6 @@ The plugin maintains logs of the last 100 notifications, showing:
 
 Logs can be cleared manually from the settings page.
 
-## Screenshots
-
-1. **Settings Page**  
-   ![Settings Page](screenshot-1.png)  
-   Configure all notification settings in one place.
-
-2. **Notification Logs**  
-   ![Notification Logs](screenshot-2.png)  
-   View history of all login notifications.
-
 ## Frequently Asked Questions
 
 ### Why am I not receiving notifications?
