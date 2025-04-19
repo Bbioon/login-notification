@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Bbioon Login Notification
  * Description: Sends email notification when users login with customizable settings
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: Ahmad Wael
  * Author URI: https://bbioon.com
  * License: GPL-2.0+
@@ -49,7 +49,7 @@ class Bbioon_Login_Notification {
 	 * Constructor to initialize hooks and settings
 	 */
 	private function __construct() {
-		// Load default settings or existing ones from the database
+		// Load settings from database or set defaults
 		$this->settings = get_option( 'bbioon_login_notification_settings', [
 			'email'          => get_option( 'admin_email' ),
 			'roles'          => [ 'administrator', 'editor' ],
@@ -59,12 +59,44 @@ class Bbioon_Login_Notification {
 		] );
 
 		// Register WordPress hooks
-		add_action( 'admin_menu', [ $this, 'add_settings_page' ] );
-		add_action( 'admin_init', [ $this, 'register_settings' ] );
-		add_action( 'wp_login', [ $this, 'send_notification' ], 10, 2 );
-		add_action( 'plugins_loaded', [ $this, 'load_textdomain' ] );
-		add_action( 'admin_post_bbioon_login_notification_test_email', [ $this, 'send_test_email' ] );
-		add_action( 'admin_post_bbioon_login_notification_clear_logs', [ $this, 'clear_logs' ] );
+		add_action( 'admin_menu', [ $this, 'add_settings_page' ] ); // Add settings page
+		add_action( 'admin_init', [ $this, 'register_settings' ] ); // Register settings
+		add_action( 'wp_login', [ $this, 'send_notification' ], 10, 2 ); // Handle login notifications
+		add_action( 'plugins_loaded', [ $this, 'load_textdomain' ] ); // Load translations
+		add_action( 'admin_post_bbioon_login_notification_test_email', [ $this, 'send_test_email' ] ); // Test email action
+		add_action( 'admin_post_bbioon_login_notification_clear_logs', [ $this, 'clear_logs' ] ); // Clear logs action
+		add_action( 'init', [ $this, 'check_active_session' ] ); // Check active session for notifications
+	}
+
+	/**
+	 * Check if a logged-in user should trigger a notification
+	 */
+	public function check_active_session() {
+		if ( is_user_logged_in() && ! $this->is_notification_sent_today() ) {
+			$user     = wp_get_current_user();
+			$excluded = array_map( 'trim', explode( ',', $this->settings['excluded_users'] ) );
+			if ( in_array( $user->ID, $excluded, true ) ) {
+				return; // Skip excluded users
+			}
+			$user_roles = (array) $user->roles;
+			if ( ! empty( $this->settings['roles'] ) && ! array_intersect( $user_roles, $this->settings['roles'] ) ) {
+				return; // Skip if user role not selected
+			}
+			$this->send_notification( $user->user_login, $user ); // Send notification
+			update_user_meta( $user->ID, 'bbioon_last_notification', current_time( 'mysql' ) ); // Update last notification time
+		}
+	}
+
+	/**
+	 * Check if a notification was already sent today for the user
+	 *
+	 * @return bool True if sent today, false otherwise
+	 */
+	private function is_notification_sent_today() {
+		$user      = wp_get_current_user();
+		$last_sent = get_user_meta( $user->ID, 'bbioon_last_notification', true );
+
+		return $last_sent && date( 'Y-m-d', strtotime( $last_sent ) ) === date( 'Y-m-d' );
 	}
 
 	/**
@@ -107,11 +139,11 @@ class Bbioon_Login_Notification {
 	 */
 	public function sanitize_settings( $input ) {
 		$sanitized                   = [];
-		$sanitized['email']          = sanitize_email( $input['email'] ?? '' );
-		$sanitized['roles']          = array_map( 'sanitize_text_field', (array) ( $input['roles'] ?? [] ) );
-		$sanitized['excluded_users'] = sanitize_text_field( $input['excluded_users'] ?? '' );
-		$sanitized['subject']        = sanitize_text_field( $input['subject'] ?? '' );
-		$sanitized['content']        = wp_kses_post( $input['content'] ?? '' );
+		$sanitized['email']          = sanitize_email( $input['email'] ?? '' ); // Sanitize email
+		$sanitized['roles']          = array_map( 'sanitize_text_field', (array) ( $input['roles'] ?? [] ) ); // Sanitize roles
+		$sanitized['excluded_users'] = sanitize_text_field( $input['excluded_users'] ?? '' ); // Sanitize excluded users
+		$sanitized['subject']        = sanitize_text_field( $input['subject'] ?? '' ); // Sanitize subject
+		$sanitized['content']        = wp_kses_post( $input['content'] ?? '' ); // Sanitize content with HTML
 
 		return $sanitized;
 	}
@@ -142,7 +174,7 @@ class Bbioon_Login_Notification {
 		$logs[] = $log_entry;
 		// Limit to 100 logs to prevent excessive storage
 		if ( count( $logs ) > 100 ) {
-			$logs = array_slice( $logs, - 100 );
+			$logs = array_slice( $logs, - 100 ); // Limit to 100 logs
 		}
 		update_option( 'bbioon_login_notification_logs', $logs, false );
 	}
@@ -159,7 +191,7 @@ class Bbioon_Login_Notification {
 		wp_safe_redirect( add_query_arg( [
 			'page'    => 'bbioon-login-notification',
 			'message' => 'logs_cleared',
-		], admin_url( 'options-general.php' ) ) );
+		], esc_url( admin_url( 'options-general.php' ) ) ) ); // Redirect
 		exit;
 	}
 
@@ -216,9 +248,7 @@ class Bbioon_Login_Notification {
 										'bbioon-login-notification' ); ?>
                                 </p>
 								<?php
-								// Display all editable roles as checkboxes
-								foreach ( get_editable_roles() as $role_name => $role_info ):
-									?>
+								foreach ( get_editable_roles() as $role_name => $role_info ): ?>
                                     <label>
                                         <input
                                                 type="checkbox"
@@ -408,20 +438,16 @@ class Bbioon_Login_Notification {
 	 * Send a test notification email
 	 */
 	public function send_test_email() {
-		// Verify nonce for security
-		check_admin_referer( 'bbioon_login_notification_test_email' );
-
-		// Check if email is configured
+		check_admin_referer( 'bbioon_login_notification_test_email' ); // Verify nonce
 		if ( empty( $this->settings['email'] ) ) {
 			wp_safe_redirect( add_query_arg( [
 				'page'  => 'bbioon-login-notification',
 				'error' => 'no_email',
-			], admin_url( 'options-general.php' ) ) );
+			], admin_url( 'options-general.php' ) ) ); // Redirect if no email
 			exit;
 		}
 
-		// Get current user for test email
-		$user         = wp_get_current_user();
+		$user         = wp_get_current_user(); // Get current user
 		$replacements = [
 			'[username]'   => $user->user_login,
 			'[first_name]' => $user->first_name,
@@ -448,7 +474,7 @@ class Bbioon_Login_Notification {
 			$subject,
 			$content,
 			[
-				'From: WordPress <' . get_option('admin_email') . '>',
+				'From: WordPress <' . get_option( 'admin_email' ) . '>',
 				'Content-Type: text/html; charset=UTF-8',
 			]
 		);
@@ -476,21 +502,20 @@ class Bbioon_Login_Notification {
 	 * @param WP_User $user       User object
 	 */
 	public function send_notification( $user_login, $user ) {
-		// Exit if no email is configured
 		if ( empty( $this->settings['email'] ) ) {
-			return;
+			return; // Exit if no email configured
 		}
 
-		// Check if user is excluded
+		// Check excluded users
 		$excluded = array_map( 'trim', explode( ',', $this->settings['excluded_users'] ) );
 		if ( in_array( $user->ID, $excluded, true ) ) {
-			return;
+			return; // Skip excluded users
 		}
 
-		// Check if user role is selected
+		// Check user roles
 		$user_roles = (array) $user->roles;
 		if ( ! empty( $this->settings['roles'] ) && ! array_intersect( $user_roles, $this->settings['roles'] ) ) {
-			return;
+			return; // Skip if role not selected
 		}
 
 		// Prepare replacement tags
@@ -520,7 +545,7 @@ class Bbioon_Login_Notification {
 			$subject,
 			$content,
 			[
-				'From: WordPress <' . get_option('admin_email') . '>',
+				'From: WordPress <' . get_option( 'admin_email' ) . '>',
 				'Content-Type: text/html; charset=UTF-8',
 			]
 		);
