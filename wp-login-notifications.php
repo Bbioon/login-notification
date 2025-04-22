@@ -96,7 +96,7 @@ class Bbioon_Login_Notification {
 		$user      = wp_get_current_user();
 		$last_sent = get_user_meta( $user->ID, 'bbioon_last_notification', true );
 
-		return $last_sent && date( 'Y-m-d', strtotime( $last_sent ) ) === date( 'Y-m-d' );
+		return $last_sent && date( 'Y-m-d', strtotime( $last_sent ) ) === date( 'Y-m-d', strtotime( current_time( 'mysql' ) ) );
 	}
 
 	/**
