@@ -18,6 +18,12 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Main class for handling login notifications and plugin settings
  */
 class Bbioon_Login_Notification {
+
+	/**
+	 * Meta key for storing last notification time
+	 */
+    private const USER_META_KEY = 'bbioon_last_login_notification';
+
 	/**
 	 * Singleton instance of the class
 	 *
@@ -75,6 +81,7 @@ class Bbioon_Login_Notification {
 		if ( is_user_logged_in() && ! $this->is_notification_sent_today() ) {
 			$user     = wp_get_current_user();
 			$excluded = array_map( 'trim', explode( ',', $this->settings['excluded_users'] ) );
+			$excluded = array_map( 'intval', $excluded ); // Convert to integers
 			if ( in_array( $user->ID, $excluded, true ) ) {
 				return; // Skip excluded users
 			}
@@ -83,7 +90,7 @@ class Bbioon_Login_Notification {
 				return; // Skip if user role not selected
 			}
 			$this->send_notification( $user->user_login, $user ); // Send notification
-			update_user_meta( $user->ID, 'bbioon_last_notification', current_time( 'mysql' ) ); // Update last notification time
+			update_user_meta( $user->ID, self::USER_META_KEY, current_time( 'mysql' ) ); // Update last notification time
 		}
 	}
 
@@ -94,7 +101,7 @@ class Bbioon_Login_Notification {
 	 */
 	private function is_notification_sent_today() {
 		$user      = wp_get_current_user();
-		$last_sent = get_user_meta( $user->ID, 'bbioon_last_notification', true );
+		$last_sent = get_user_meta( $user->ID, self::USER_META_KEY, true );
 
 		return $last_sent && date( 'Y-m-d', strtotime( $last_sent ) ) === date( 'Y-m-d', strtotime( current_time( 'mysql' ) ) );
 	}
